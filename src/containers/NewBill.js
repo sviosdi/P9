@@ -13,18 +13,37 @@ export default class NewBill {
     this.fileUrl = null
     this.fileName = null
     this.billId = null
+    this.file = null
     new Logout({ document, localStorage, onNavigate })
   }
+
   handleChangeFile = e => {
     e.preventDefault()
-    const file = this.document.querySelector(`input[data-testid="file"]`).files[0]
+    const fileInput = this.document.querySelector(`input[data-testid="file"]`)
+    this.file = fileInput.files[0]
     const filePath = e.target.value.split(/\\/g)
-    const fileName = filePath[filePath.length-1]
+    this.fileName = filePath[filePath.length-1]
+    // Si le fichier n'est pas une image
+    if (!['image/jpeg', 'image/jpg', 'image/png', 'image/gif'].includes(this.file.type)) {
+      if (!fileInput.nextElementSibling) {
+        let div = this.document.createElement('div')
+        div.textContent = "Vous ne pouvez joindre qu'un fichier dans l'un des formats suivants : jpeg, jpg, png ou gif."
+        fileInput.after(div);
+      }
+      fileInput.value = null;
+      return
+    } else {
+      if (fileInput.nextElementSibling) fileInput.nextElementSibling.remove();
+    }
+  }
+
+  handleSubmit = e => {
+    e.preventDefault()
+
     const formData = new FormData()
     const email = JSON.parse(localStorage.getItem("user")).email
-    formData.append('file', file)
+    formData.append('file', this.file)
     formData.append('email', email)
-
     this.store
       .bills()
       .create({
@@ -33,44 +52,40 @@ export default class NewBill {
           noContentType: true
         }
       })
-      .then(({fileUrl, key}) => {
-        console.log(fileUrl)
+      .then(({ fileUrl, key }) => {
+       // console.log(fileUrl) // toujours null ???
         this.billId = key
-        this.fileUrl = fileUrl
-        this.fileName = fileName
+        this.fileUrl = fileUrl // toujours null ???  fileUrl n'est pas un champ de la réponse, par contre filePath en est un
+        //this.fileName = fileName
+        console.log('e.target.querySelector(`input[data-testid="datepicker"]`).value', e.target.querySelector(`input[data-testid="datepicker"]`).value)
+        const bill = {
+          email,
+          type: e.target.querySelector(`select[data-testid="expense-type"]`).value,
+          name: e.target.querySelector(`input[data-testid="expense-name"]`).value,
+          amount: parseInt(e.target.querySelector(`input[data-testid="amount"]`).value),
+          date: e.target.querySelector(`input[data-testid="datepicker"]`).value,
+          vat: e.target.querySelector(`input[data-testid="vat"]`).value,
+          pct: parseInt(e.target.querySelector(`input[data-testid="pct"]`).value) || 20,
+          commentary: e.target.querySelector(`textarea[data-testid="commentary"]`).value,
+          fileUrl: this.fileUrl, // ??? à construire avec filePath ?
+          fileName: this.fileName,
+          status: 'pending'
+        }
+        this.updateBill(bill)
+        this.onNavigate(ROUTES_PATH['Bills'])   
       }).catch(error => console.error(error))
-  }
-  handleSubmit = e => {
-    e.preventDefault()
-    console.log('e.target.querySelector(`input[data-testid="datepicker"]`).value', e.target.querySelector(`input[data-testid="datepicker"]`).value)
-    const email = JSON.parse(localStorage.getItem("user")).email
-    const bill = {
-      email,
-      type: e.target.querySelector(`select[data-testid="expense-type"]`).value,
-      name:  e.target.querySelector(`input[data-testid="expense-name"]`).value,
-      amount: parseInt(e.target.querySelector(`input[data-testid="amount"]`).value),
-      date:  e.target.querySelector(`input[data-testid="datepicker"]`).value,
-      vat: e.target.querySelector(`input[data-testid="vat"]`).value,
-      pct: parseInt(e.target.querySelector(`input[data-testid="pct"]`).value) || 20,
-      commentary: e.target.querySelector(`textarea[data-testid="commentary"]`).value,
-      fileUrl: this.fileUrl,
-      fileName: this.fileName,
-      status: 'pending'
-    }
-    this.updateBill(bill)
-    this.onNavigate(ROUTES_PATH['Bills'])
   }
 
   // not need to cover this function by tests
   updateBill = (bill) => {
     if (this.store) {
       this.store
-      .bills()
-      .update({data: JSON.stringify(bill), selector: this.billId})
-      .then(() => {
-        this.onNavigate(ROUTES_PATH['Bills'])
-      })
-      .catch(error => console.error(error))
+        .bills()
+        .update({ data: JSON.stringify(bill), selector: this.billId })
+        .then(() => {
+          this.onNavigate(ROUTES_PATH['Bills'])
+        })
+        .catch(error => console.error(error))
     }
   }
 }
