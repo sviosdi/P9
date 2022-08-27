@@ -56,8 +56,8 @@ export default class NewBill {
        // console.log(fileUrl) // toujours null ???
         this.billId = key
         this.fileUrl = fileUrl // toujours null ???  fileUrl n'est pas un champ de la réponse, par contre filePath en est un
-        //this.fileName = fileName
-        console.log('e.target.querySelector(`input[data-testid="datepicker"]`).value', e.target.querySelector(`input[data-testid="datepicker"]`).value)
+        // this.fileName = fileName
+        // console.log('e.target.querySelector(`input[data-testid="datepicker"]`).value', e.target.querySelector(`input[data-testid="datepicker"]`).value)
         const bill = {
           email,
           type: e.target.querySelector(`select[data-testid="expense-type"]`).value,

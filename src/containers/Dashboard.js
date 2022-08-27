@@ -32,7 +32,7 @@ export const card = (bill) => {
   const firstName = firstAndLastNames.includes('.') ?
     firstAndLastNames.split('.')[0] : ''
   const lastName = firstAndLastNames.includes('.') ?
-  firstAndLastNames.split('.')[1] : firstAndLastNames
+    firstAndLastNames.split('.')[1] : firstAndLastNames
 
   return (`
     <div class='bill-card' id='open-bill${bill.id}' data-testid='open-bill${bill.id}'>
@@ -72,9 +72,11 @@ export default class {
     this.document = document
     this.onNavigate = onNavigate
     this.store = store
-    $('#arrow-icon1').click((e) => this.handleShowTickets(e, bills, 1))
-    $('#arrow-icon2').click((e) => this.handleShowTickets(e, bills, 2))
-    $('#arrow-icon3').click((e) => this.handleShowTickets(e, bills, 3))
+    $('#arrow-icon1').on("click", (e) => this.handleShowTickets(e, bills, 1))
+    $('#arrow-icon2').on("click", (e) => this.handleShowTickets(e, bills, 2))
+    $('#arrow-icon3').on("click", (e) => this.handleShowTickets(e, bills, 3))
+    this.counter = [null, false, false, false]; // this.counter === [null, false, true, false] signifie que les bills 
+    // validées this.counter[2] sont dépliées       
     new Logout({ localStorage, onNavigate })
   }
 
@@ -85,29 +87,27 @@ export default class {
     if (typeof $('#modaleFileAdmin1').modal === 'function') $('#modaleFileAdmin1').modal('show')
   }
 
-  handleEditTicket(e, bill, bills) {
-    if (this.counter === undefined || this.id !== bill.id) this.counter = 0
-    if (this.id === undefined || this.id !== bill.id) this.id = bill.id
-    if (this.counter % 2 === 0) {
-      bills.forEach(b => {
-        $(`#open-bill${b.id}`).css({ background: '#0D5AE5' })
-      })
-      $(`#open-bill${bill.id}`).css({ background: '#2A2B35' })
+  handleEditTicket(e, bill) {
+    console.log(bill.id)
+    //if (this.counter === undefined || this.id !== bill.id) this.counter = 0
+    if ((this.lastId && bill.id !== this.lastId) || !this.lastId) { // Si une bill est sélectionnée et on sélectionne 
+      // une bill différente de la bill sélectionnée (courante) ou si aucune bill n'est sélectionnée        
+      if (this.lastId) { // S'il y a une bill déjà sélectionnée
+        $(`#open-bill${this.lastId}`).css({ background: '#0D5AE5' }) // déselectionner la dernière bill sélectionnée                   
+      }
+      $(`#open-bill${bill.id}`).css({ background: '#2A2B35' })  // sélectionner la nouvelle 
       $('.dashboard-right-container div').html(DashboardFormUI(bill))
-      $('.vertical-navbar').css({ height: '150vh' })
-      this.counter ++
+      $('#icon-eye-d').on('click', this.handleClickIconEye)
+      $('#btn-accept-bill').on('click', (e) => this.handleAcceptSubmit(e, bill))
+      $('#btn-refuse-bill').on('click', (e) => this.handleRefuseSubmit(e, bill))
+      this.lastId = bill.id;
     } else {
-      $(`#open-bill${bill.id}`).css({ background: '#0D5AE5' })
-
+      $(`#open-bill${this.lastId}`).css({ background: '#0D5AE5' })
       $('.dashboard-right-container div').html(`
-        <div id="big-billed-icon" data-testid="big-billed-icon"> ${BigBilledIcon} </div>
+      <div id="big-billed-icon" data-testid="big-billed-icon"> ${BigBilledIcon} </div>
       `)
-      $('.vertical-navbar').css({ height: '120vh' })
-      this.counter ++
+      this.lastId = undefined;
     }
-    $('#icon-eye-d').click(this.handleClickIconEye)
-    $('#btn-accept-bill').click((e) => this.handleAcceptSubmit(e, bill))
-    $('#btn-refuse-bill').click((e) => this.handleRefuseSubmit(e, bill))
   }
 
   handleAcceptSubmit = (e, bill) => {
@@ -131,46 +131,42 @@ export default class {
   }
 
   handleShowTickets(e, bills, index) {
-    if (this.counter === undefined || this.index !== index) this.counter = 0
-    if (this.index === undefined || this.index !== index) this.index = index
-    if (this.counter % 2 === 0) {
-      $(`#arrow-icon${this.index}`).css({ transform: 'rotate(0deg)'})
-      $(`#status-bills-container${this.index}`)
-        .html(cards(filteredBills(bills, getStatus(this.index))))
-      this.counter ++
-    } else {
-      $(`#arrow-icon${this.index}`).css({ transform: 'rotate(90deg)'})
-      $(`#status-bills-container${this.index}`)
+    this.counter[index] = !this.counter[index]
+    const bills_filtres = filteredBills(bills, getStatus(index));
+    if (this.counter[index]) { // afficher les bills filtrées
+      $(`#arrow-icon${index}`).css({ transform: 'rotate(0deg)' })
+      $(`#status-bills-container${index}`).html(cards(bills_filtres))
+      $('.vertical-navbar').css({ height: '150vh' })
+      bills_filtres.forEach((bill) => {
+        if (this.lastId && this.lastId === bill.id) // on rouvre un groupe de bills alors qu'une bill était active
+          $(`#open-bill${bill.id}`).css({ background: '#2A2B35' })
+        $(`#open-bill${bill.id}`).on('click', (e) => this.handleEditTicket(e, bill))
+      })      
+    } else { // masquer les bills filtrées
+      $(`#arrow-icon${index}`).css({ transform: 'rotate(90deg)' })
+      $(`#status-bills-container${index}`)
         .html("")
-      this.counter ++
     }
-
-    bills.forEach(bill => {
-      $(`#open-bill${bill.id}`).click((e) => this.handleEditTicket(e, bill, bills))
-    })
-
-    return bills
-
   }
 
   getBillsAllUsers = () => {
     if (this.store) {
       return this.store
-      .bills()
-      .list()
-      .then(snapshot => {
-        const bills = snapshot
-        .map(doc => ({
-          id: doc.id,
-          ...doc,
-          date: doc.date,
-          status: doc.status
-        }))
-        return bills
-      })
-      .catch(error => {
-        throw error;
-      })
+        .bills()
+        .list()
+        .then(snapshot => {
+          const bills = snapshot
+            .map(doc => ({
+              id: doc.id,
+              ...doc,
+              date: doc.date,
+              status: doc.status
+            }))
+          return bills
+        })
+        .catch(error => {
+          throw error;
+        })
     }
   }
 
@@ -178,11 +174,11 @@ export default class {
   /* istanbul ignore next */
   updateBill = (bill) => {
     if (this.store) {
-    return this.store
-      .bills()
-      .update({data: JSON.stringify(bill), selector: bill.id})
-      .then(bill => bill)
-      .catch(console.log)
+      return this.store
+        .bills()
+        .update({ data: JSON.stringify(bill), selector: bill.id })
+        .then(bill => bill)
+        .catch(console.log)
     }
   }
 }
