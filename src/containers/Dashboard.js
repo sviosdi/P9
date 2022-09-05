@@ -76,7 +76,7 @@ export default class {
     $('#arrow-icon2').on("click", (e) => this.handleShowTickets(e, bills, 2))
     $('#arrow-icon3').on("click", (e) => this.handleShowTickets(e, bills, 3))
     this.counter = [null, false, false, false]; // this.counter === [null, false, true, false] signifie que les bills 
-    // validées this.counter[2] sont dépliées       
+    // validées (this.counter[2]) sont dépliées (=== true, false si repliées)       
     new Logout({ localStorage, onNavigate })
   }
 

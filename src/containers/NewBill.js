@@ -30,8 +30,8 @@ export default class NewBill {
         div.textContent = "Vous ne pouvez joindre qu'un fichier dans l'un des formats suivants : jpeg, jpg, png ou gif."
         fileInput.after(div);
       }
-      fileInput.value = null;
-      return
+      this.file = null; // pour les tests
+      fileInput.value = null; // pour que le nom du fichier n'apparaîsse pas, mais au contraire 'choisir un fichier'     
     } else {
       if (fileInput.nextElementSibling) fileInput.nextElementSibling.remove();
     }
@@ -89,3 +89,6 @@ export default class NewBill {
     }
   }
 }
+
+
+
